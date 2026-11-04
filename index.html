@@ -87,6 +87,13 @@ input.ap{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--line);bo
   .views{flex-wrap:wrap;justify-content:center;max-width:calc(100% - 16px);white-space:normal}
   .nav3{display:none!important}
 }
+#pdfbox{position:fixed;inset:0;background:rgba(20,20,18,.55);display:none;align-items:center;justify-content:center;z-index:11}
+#pdfbox.on{display:flex}
+#pdfbox .box{background:#fff;border-radius:14px;width:min(1100px,calc(100% - 24px));height:calc(100% - 40px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.pdfhead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.pdfhead span{color:var(--muted);font-size:13px} .pdfhead a{text-decoration:none;color:inherit}
+#pdfview{flex:1;border:0;width:100%;background:#eee}
+#pdf{background:var(--ink);color:#fff;border-color:var(--ink)}
 #guide{position:fixed;inset:0;background:rgba(20,20,18,.45);display:none;align-items:center;justify-content:center;z-index:10}
 #guide.on{display:flex}
 #guide .box{background:#fff;border-radius:14px;max-width:640px;width:calc(100% - 32px);max-height:86vh;overflow:auto;padding:22px 26px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
@@ -107,7 +114,7 @@ input.ap{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--line);bo
   <button class="tool" id="help">? How to use</button>
   <button class="tool" id="reset">Reset</button>
   <button class="tool" id="share">Share link</button>
-  <button class="tool" id="pdf">PDF brochure</button>
+  <button class="tool" id="pdf">📄 PDF brochure</button>
   <button class="tool" id="dl">Download image</button>
 </header>
 <aside class="l">
@@ -145,11 +152,12 @@ input.ap{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--line);bo
     </div>
   </div>
 </aside>
+<div id="pdfbox"><div class="box"><div class="pdfhead"><b>Brochure preview</b><span id="pdfname"></span><span class="spacer"></span><a class="tool" id="pdfopen" target="_blank" rel="noopener">Open in new tab</a><button class="tool" id="pdfsave">Download PDF</button><button class="tool" id="pdfclose">Close</button></div><iframe id="pdfview" title="Brochure preview"></iframe></div></div>
 <div id="guide"><div class="box">
   <h3>How to use Yogprabha Facade Studio</h3>
   <p>Try colours and finishes on the Yogprabha exterior. The 2D views are the R5 elevations, and the 3D view is the project's SketchUp model. The building's shape never changes, only colours and finishes.</p>
   <h4>1 · Start from a combination</h4>
-  <p>Click any of the 11 <b>Recommended combinations</b> on the left (number 1 is the model exactly as designed in SketchUp). It applies to all four sides and the 3D model at once.</p>
+  <p>Click any of the 13 <b>Recommended combinations</b> on the left. Number 1 is the model exactly as designed in SketchUp. The other 12 follow the methods colour consultants use: <b>60-30-10</b> (60% body colour, 30% secondary, 10% accent), <b>LRV</b> (light reflectance; light bodies of LRV 60+ keep a Mumbai facade cooler, and an accent at least ~30 LRV away reads clearly), <b>undertone harmony</b> (warm with warm, cool with cool), <b>material-led</b> palettes (stone, brick or timber set the colours) and <b>context</b> (Lenclos' geography of colour: local earth pigments and climate). Each card says which rule it follows. It applies to all four sides and the 3D model at once.</p>
   <h4>2 · Change any part</h4>
   <ul><li>Pick an element on the right (main walls, terracotta frame, orange panels, wood cladding, grey panels, glazing, dark strip, railings, ground floor, top), or just <b>click that part on the drawing or the 3D model</b>.</li>
   <li>Choose a colour from the swatches or <b>Custom colour</b>, then a <b>finish</b> (paint, textured paint, concrete, brick, stone, wood, metal, tiles, glass). <b>Pattern size</b> scales bricks, stones and planks.</li>
@@ -188,16 +196,18 @@ const SWATCHES = ["#f7f5f0","#efe4d2","#e3cfae","#c9a77c","#b5523b","#8a5a33","#
 const P = (c,t,s)=>({c,t,s:s||1.5});
 const PRESETS = [
   {n:"SketchUp original",d:"The model as designed: white, terracotta, orange, wood",r:{wall:P("#f4f4f2","paint"),accent:P("#b04a36","paint"),feature:P("#f29a3a","paint"),cladding:P("#8b5a2b","wood",2),panel:P("#bcbdc0","paint"),glass:P("#6f95d8","glass"),strip:P("#111111","glass"),frames:P("#f2f2f2","metal"),base:P("#e6e6e4","concrete"),top:P("#f4f4f2","paint")}},
-  {n:"Warm Sandstone",d:"Calm beige with terracotta fins",r:{feature:P("#d9a55b","paint"),cladding:P("#9a6a3f","wood",2),strip:P("#2b3036","glass"),wall:P("#e8d9c0","texpaint"),accent:P("#b5523b","paint"),panel:P("#f4efe6","paint"),glass:P("#5d7380","glass"),frames:P("#3a3a3a","metal"),base:P("#8c8279","stone"),top:P("#e8d9c0","texpaint")}},
-  {n:"Monsoon Concrete",d:"Raw concrete, graphite cladding",r:{feature:P("#8a8f96","metal"),cladding:P("#5a4636","wood",2),strip:P("#1c2228","glass"),wall:P("#bfbfba","concrete"),accent:P("#4a4e54","metal"),panel:P("#e6e6e2","paint"),glass:P("#2e3b44","glass"),frames:P("#1f1f1f","metal"),base:P("#6b6b6b","stone"),top:P("#4a4e54","metal")}},
-  {n:"Coastal White",d:"Crisp white with ocean blue",r:{feature:P("#9fc4d6","paint"),cladding:P("#c8b59a","wood",2),strip:P("#2c4a5c","glass"),wall:P("#f7f7f4","paint"),accent:P("#2f6f8f","paint"),panel:P("#dde8ee","paint"),glass:P("#6f9fb3","glass"),frames:P("#9aa5ad","metal"),base:P("#d9d2c5","stone"),top:P("#2f6f8f","paint")}},
-  {n:"Teak & Ivory",d:"Warm wood fins on ivory",r:{feature:P("#c9a27a","paint"),cladding:P("#8a5a33","wood",2),strip:P("#3a3330","glass"),wall:P("#f1e9da","texpaint"),accent:P("#8a5a33","wood",2),panel:P("#e2d3b8","paint"),glass:P("#5b5146","glass"),frames:P("#2b2b2b","metal"),base:P("#6e5b4c","stone"),top:P("#8a5a33","wood",2)}},
-  {n:"Red Brick Heritage",d:"Exposed brick with cream",r:{feature:P("#c98a5a","paint"),cladding:P("#7a4a2e","wood",2),strip:P("#2a2e33","glass"),wall:P("#f0e6d8","texpaint"),accent:P("#a0452e","brick",2),panel:P("#d9cbb5","paint"),glass:P("#3e4c55","glass"),frames:P("#2a2a2a","metal"),base:P("#7e3b2a","brick",2),top:P("#a0452e","brick",2)}},
-  {n:"Charcoal & Brass",d:"Dark, premium, metallic accents",r:{feature:P("#8c7a5b","metal"),cladding:P("#4a3a2c","wood",2),strip:P("#14191d","glass"),wall:P("#3c3f44","paint"),accent:P("#b08d57","metal"),panel:P("#6e7278","paint"),glass:P("#1e2a30","glass"),frames:P("#b08d57","metal"),base:P("#2b2d30","stone"),top:P("#b08d57","metal")}},
-  {n:"Sage Garden",d:"Soft greens, natural stone",r:{feature:P("#a9b78f","paint"),cladding:P("#8a6e4e","wood",2),strip:P("#2f3a33","glass"),wall:P("#e5e8dc","texpaint"),accent:P("#7d8f69","paint"),panel:P("#c9d1b9","paint"),glass:P("#44564b","glass"),frames:P("#3f4a3a","metal"),base:P("#8f8a7c","stone"),top:P("#7d8f69","paint")}},
-  {n:"Desert Rose",d:"Blush plaster, rosewood bands",r:{feature:P("#d9a08f","paint"),cladding:P("#8f6650","wood",2),strip:P("#3a3236","glass"),wall:P("#ebd5c8","texpaint"),accent:P("#c07a6a","paint"),panel:P("#f5e9e2","paint"),glass:P("#4c4a52","glass"),frames:P("#5a4b48","metal"),base:P("#9c7f72","stone"),top:P("#c07a6a","paint")}},
-  {n:"Blue Steel",d:"Corporate silver and navy",r:{feature:P("#6f8fb0","metal"),cladding:P("#6a5a4a","wood",2),strip:P("#1a2a3c","glass"),wall:P("#d7dce0","metal"),accent:P("#1f3a5f","metal"),panel:P("#eef1f3","paint"),glass:P("#2d4a66","glass"),frames:P("#9aa4ad","metal"),base:P("#5e6670","tiles"),top:P("#1f3a5f","metal")}},
-  {n:"Ochre Contemporary",d:"Mustard fins, light concrete",r:{feature:P("#e0b04a","paint"),cladding:P("#8a6040","wood",2),strip:P("#262c30","glass"),wall:P("#f3ebdd","paint"),accent:P("#d29a2e","paint"),panel:P("#e6e0d4","paint"),glass:P("#39434a","glass"),frames:P("#2f2f2f","metal"),base:P("#8e8a82","concrete"),top:P("#d29a2e","paint")}}
+  {n:"Ivory & Teak",d:"Material-led · warm analogous · 60 ivory / 30 teak / 10 bronze",r:{wall:P("#eee6d8","texpaint"),panel:P("#d8ccb8","paint"),accent:P("#5c4033","paint"),feature:P("#b88a5a","paint"),cladding:P("#8a5a33","wood",2),glass:P("#4a4a44","glass"),strip:P("#2b2b2b","glass"),frames:P("#3a3530","metal"),base:P("#a89880","stone"),top:P("#eee6d8","texpaint")}},
+  {n:"Monsoon Grey",d:"Monochrome greys · mid-grey base hides monsoon staining",r:{wall:P("#d9dbd8","concrete"),panel:P("#a7abaa","paint"),accent:P("#4a5056","metal"),feature:P("#6e7a84","paint"),cladding:P("#5a5550","wood",2),glass:P("#2e3b44","glass"),strip:P("#1c2228","glass"),frames:P("#2f3438","metal"),base:P("#6b6b6b","stone"),top:P("#4a5056","metal")}},
+  {n:"Coastal Linen & Navy",d:"Complementary accent · warm linen body, cool navy 10%",r:{wall:P("#f2eee6","paint"),panel:P("#dcd5c8","paint"),accent:P("#1f3a5f","paint"),feature:P("#c2a27a","paint"),cladding:P("#b59a7a","wood",2),glass:P("#5e7f96","glass"),strip:P("#1a2a3c","glass"),frames:P("#e8e6e1","metal"),base:P("#cfc6b6","stone"),top:P("#1f3a5f","paint")}},
+  {n:"Terracotta Courtyard",d:"Context (Lenclos) · Indian earth pigments, laterite base",r:{wall:P("#ebdcc6","texpaint"),panel:P("#d3b99a","paint"),accent:P("#a0452e","paint"),feature:P("#c9733f","paint"),cladding:P("#9a4a32","brick",2),glass:P("#3e4c55","glass"),strip:P("#2a2e33","glass"),frames:P("#3a2e2a","metal"),base:P("#8c5a44","stone"),top:P("#a0452e","paint")}},
+  {n:"Sandstone & Bronze",d:"Material-led · stone sets the palette, paint follows its undertone",r:{wall:P("#e6d6ba","texpaint"),panel:P("#cdb48e","stone"),accent:P("#8c6b47","paint"),feature:P("#b9965f","paint"),cladding:P("#7a5a3a","wood",2),glass:P("#4a4e50","glass"),strip:P("#2b2b2b","glass"),frames:P("#6e5a45","metal"),base:P("#b49a72","stone"),top:P("#cdb48e","stone")}},
+  {n:"Charcoal & Champagne",d:"High contrast · dark kept to the 30% so walls stay cool (LRV 80+)",r:{wall:P("#ece9e3","paint"),panel:P("#cfcac2","paint"),accent:P("#2f3236","metal"),feature:P("#b9a07a","metal"),cladding:P("#3c3430","wood",2),glass:P("#1e2a30","glass"),strip:P("#14191d","glass"),frames:P("#b9a07a","metal"),base:P("#3c3f44","stone"),top:P("#2f3236","metal")}},
+  {n:"Sage & Stone",d:"Analogous green-greys · biophilic, soft contrast",r:{wall:P("#e7e9df","texpaint"),panel:P("#c9cfbc","paint"),accent:P("#6f7f5e","paint"),feature:P("#a9b78f","paint"),cladding:P("#8a6e4e","wood",2),glass:P("#44564b","glass"),strip:P("#263029","glass"),frames:P("#3f4a3a","metal"),base:P("#8f8a7c","stone"),top:P("#6f7f5e","paint")}},
+  {n:"Blush & Bronze",d:"Warm undertones only · blush body, bronze metal accent",r:{wall:P("#f1e4dc","texpaint"),panel:P("#e0c9bc","paint"),accent:P("#8e5b4a","paint"),feature:P("#c99383","paint"),cladding:P("#7e5a44","wood",2),glass:P("#4c4a52","glass"),strip:P("#2e2a2d","glass"),frames:P("#7a5c42","metal"),base:P("#a48a7c","stone"),top:P("#8e5b4a","paint")}},
+  {n:"White Oak Minimal",d:"Monochrome white + one natural material · Nordic restraint",r:{wall:P("#f7f7f4","paint"),panel:P("#e4e4e0","paint"),accent:P("#d9d6cf","paint"),feature:P("#c8b08a","wood",2),cladding:P("#c8a67a","wood",2),glass:P("#7f98a8","glass"),strip:P("#3a3f44","glass"),frames:P("#f0f0ee","metal"),base:P("#bdbab3","concrete"),top:P("#f7f7f4","paint")}},
+  {n:"Deep Teal Modern",d:"Complementary · teal against warm greige and copper",r:{wall:P("#e9e4da","paint"),panel:P("#cfc6b8","paint"),accent:P("#1f5a5e","paint"),feature:P("#d19a5b","paint"),cladding:P("#6e4e36","wood",2),glass:P("#2f4a4f","glass"),strip:P("#18282a","glass"),frames:P("#2a3436","metal"),base:P("#7c756a","stone"),top:P("#1f5a5e","paint")}},
+  {n:"Ochre Heritage",d:"Context (Lenclos) · limewash ochre of Indian heritage streets",r:{wall:P("#f0e2c2","texpaint"),panel:P("#dcc69a","paint"),accent:P("#b7792b","paint"),feature:P("#d9a441","paint"),cladding:P("#7a5534","wood",2),glass:P("#39434a","glass"),strip:P("#262c30","glass"),frames:P("#4a3b2a","metal"),base:P("#a1876a","stone"),top:P("#b7792b","paint")}},
+  {n:"Graphite & Brick",d:"Material-led · exposed brick + graphite metal on a light base",r:{wall:P("#e4e1dc","paint"),panel:P("#b9b3ab","concrete"),accent:P("#3a3d40","metal"),feature:P("#a34b33","brick",2),cladding:P("#9a4a32","brick",2),glass:P("#2b353c","glass"),strip:P("#16191c","glass"),frames:P("#2e3135","metal"),base:P("#5e5a56","stone"),top:P("#3a3d40","metal")}}
 ];
 
 // ---------- procedural textures: luminance tiles around 1.0 ----------
@@ -221,6 +231,8 @@ function texTile(t, scale){
   return texCache[key]={w,h,a};
 }
 const hex2rgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
+// LRV ≈ relative luminance × 100 (what paint makers print on shade cards)
+const lrv=h=>Math.round(100*hex2rgb(h).map(v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0));
 
 // ---------- state ----------
 const MESH_V="dae1";
@@ -359,7 +371,7 @@ function chipBg(f){return f.c}
 function buildUI(){
   const tabs=$("tabs");
   [["all","All 4 sides"],...Object.keys(SIDES).map(n=>[n,n]),["3d","3D view"]].forEach(([k,l])=>{const b=document.createElement("button");b.textContent=l;b.dataset.k=k;b.onclick=()=>{view=k;zoom=1;refreshUI();layout()};tabs.append(b)});
-  PRESETS.forEach((p,i)=>{const b=document.createElement("button");b.className="preset";b.innerHTML=`<b>${i+1}. ${p.n}</b><small>${p.d}</small><div class="chips">${["wall","accent","panel","glass","frames","base"].map(k=>`<i style="background:${p.r[k].c}"></i>`).join("")}</div>`;b.onclick=()=>{state.preset=i;state.roles=clone(p.r);state.parts3d={};clearParts();save();refreshUI();renderAll();if(window.V3)V3.roles()};$("presets").append(b)});
+  PRESETS.forEach((p,i)=>{const b=document.createElement("button");b.className="preset";const lb=lrv(p.r.wall.c),la=lrv(p.r.accent.c);b.innerHTML=`<b>${i+1}. ${p.n}</b><small>${p.d}</small><small style="display:block;margin-top:2px">Body LRV ${lb} · accent ΔLRV ${Math.abs(lb-la)}</small><div class="chips">${["wall","accent","panel","glass","frames","base"].map(k=>`<i style="background:${p.r[k].c}"></i>`).join("")}</div>`;b.onclick=()=>{state.preset=i;state.roles=clone(p.r);state.parts3d={};clearParts();save();refreshUI();renderAll();if(window.V3)V3.roles()};$("presets").append(b)});
   ROLES.forEach(([k,l,d])=>{const b=document.createElement("button");b.className="el";b.dataset.k=k;b.innerHTML=`<i></i><span>${l}<small>${d}</small></span>`;b.onclick=()=>{sel=k;picked=null;clearParts();refreshUI();if(view!=="3d")flashRole(k)};$("els").append(b)});
   SWATCHES.forEach(c=>{const b=document.createElement("button");b.style.background=c;b.title=c;b.onclick=()=>setF({c});$("sw").append(b)});
   TEXTURES.forEach(([k,l])=>{const b=document.createElement("button");b.dataset.k=k;const cv=document.createElement("canvas");cv.width=90;cv.height=30;b.append(cv,l);b.onclick=()=>setF({t:k});$("tex").append(b)});
@@ -380,6 +392,7 @@ function buildUI(){
   $("dl").onclick=download;
   $("pdf").onclick=()=>{if(view!=="3d"){view="3d";refreshUI();layout();setTimeout(brochurePdf,400)}else brochurePdf()};
   $("share").onclick=shareLink;
+  $("pdfclose").onclick=()=>$("pdfbox").classList.remove("on");
   $("ap").addEventListener("input",e=>{state.roles[sel].ap=e.target.value;save()});
   $("zin").onclick=()=>{zoom=Math.min(6,zoom*1.4);layout()};
   $("zout").onclick=()=>{zoom=Math.max(.4,zoom/1.4);layout()};
@@ -484,20 +497,26 @@ async function brochurePdf(){
     pdf.addImage(s.c.toDataURL("image/jpeg",.85),"JPEG",x,M+12,w,h);mute();pdf.setFontSize(8.5);pdf.text(s.name+" elevation",M+i*(ew+6),M+16+h)});
   // 5 schedule
   pdf.addPage();head("Colour & material schedule",5);
-  const cols=[["Element",M+16],["Finish",M+86],["Colour",M+128],["Pattern",M+153],["Gloss",M+173],["Reflect.",M+190],["Asian Paints shade",M+210]];
+  const cols=[["Element",M+16],["Finish",M+80],["Colour",M+114],["LRV",M+138],["Pattern",M+152],["Gloss",M+170],["Reflect.",M+186],["Asian Paints shade",M+206]];
   let y=M+20;pdf.setFont("helvetica","bold");pdf.setFontSize(8.5);ink();cols.forEach(([t,x])=>pdf.text(t,x,y));y+=3;pdf.setDrawColor(210,205,198);pdf.line(M,y,W-M,y);
   const names=Object.fromEntries(TEXTURES);pdf.setFont("helvetica","normal");
   ROLES.forEach(([k,l,d])=>{const f=fp(k),[r,g,b]=hex2rgb(f.c);y+=12;
     const chip=paintTexChip(Object.assign(document.createElement("canvas"),{width:96,height:96}),f.t,f.c);pdf.addImage(chip.toDataURL("image/jpeg",.9),"JPEG",M,y-8,11,11);
     ink();pdf.setFontSize(9.5);pdf.text(l,M+16,y-3);mute();pdf.setFontSize(7.5);pdf.text(d,M+16,y+1.5);ink();pdf.setFontSize(9);
-    pdf.text(names[f.t]||f.t,M+86,y-1);pdf.text(f.c.toUpperCase(),M+128,y-1);pdf.text(["paint","glass"].includes(f.t)?"–":f.s.toFixed(1)+"×",M+153,y-1);
-    pdf.text(Math.round(f.gl*100)+"%",M+173,y-1);pdf.text(Math.round(f.rf*100)+"%",M+190,y-1);pdf.text(f.ap||"—",M+210,y-1);
+    pdf.text(names[f.t]||f.t,M+80,y-1);pdf.text(f.c.toUpperCase(),M+114,y-1);pdf.text(String(lrv(f.c)),M+138,y-1);pdf.text(["paint","glass"].includes(f.t)?"–":f.s.toFixed(1)+"×",M+152,y-1);
+    pdf.text(Math.round(f.gl*100)+"%",M+170,y-1);pdf.text(Math.round(f.rf*100)+"%",M+186,y-1);pdf.text(f.ap||"—",M+206,y-1);
     pdf.setDrawColor(230,226,220);pdf.line(M,y+4,W-M,y+4)});
   const P=state.parts3d||{},np=Object.keys(P).length;
   if(np){y+=12;mute();pdf.setFontSize(9);pdf.text(`Plus ${np} custom part paint${np>1?"s":""}:`,M,y);
     const uniq=[...new Map(Object.values(P).map(v=>[JSON.stringify(v),v])).values()].slice(0,8);
     uniq.forEach((v,i)=>{const c=v.c||"#ffffff",[r,g,b]=hex2rgb(c);pdf.setFillColor(r,g,b);pdf.rect(M+i*32,y+3,6,6,"F");ink();pdf.setFontSize(8);pdf.text(`${c.toUpperCase()} ${v.t?names[v.t]:""}`,M+8+i*32,y+7.5)})}
-  pdf.save(`Yogprabha_${pn.replace(/\W+/g,"_")}_brochure.pdf`);
+  const name=`Yogprabha_${pn.replace(/\W+/g,"_")}_brochure.pdf`, url=URL.createObjectURL(pdf.output("blob"));
+  // phones have no inline PDF viewer, so they get the file straight away
+  if(location.hash.includes("&pdftest")||/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)){pdf.save(name);return}
+  $("pdfview").src=url;$("pdfname").textContent=pn+" · 5 pages";
+  $("pdfsave").onclick=()=>pdf.save(name);
+  $("pdfopen").href=url;
+  $("pdfbox").classList.add("on");
 }
 function shareLink(){
   const s={p:state.preset,r:state.roles,m:state.moves,m3:state.moves3d||{},p3:state.parts3d||{}};

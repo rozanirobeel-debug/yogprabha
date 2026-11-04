@@ -162,7 +162,7 @@ input.ap{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--line);bo
   <li><b>Time</b> slider: move the sun from morning to night. At night, the window lights come on.</li>
   <li><b>Compare with…</b> splits the 3D view: your scheme on the left, another combination on the right. Drag the handle to wipe between them.</li></ul>
   <h4>4 · Save &amp; share</h4>
-  <p><b>Download image</b> saves the flat elevations as a PNG. In 3D view it saves a brochure-style render named after the colour combination, with its swatches. <b>PDF brochure</b> saves the same as an A4 PDF. Type the <b>Asian Paints shade</b> for each element and it appears on the brochure. <b>Share link</b> copies a link that opens this exact scheme. Your last setup is remembered when you reopen the file. <b>Reset</b> goes back to the start.</p>
+  <p><b>Download image</b> saves the flat elevations as a PNG. In 3D view it saves a brochure-style render named after the colour combination, with its swatches. <b>PDF brochure</b> saves a 5-page A4 brochure: cover, the four facades, detail views, the R5 elevations in your colours, and a schedule of every element with its finish, colour code and Asian Paints shade. Type the <b>Asian Paints shade</b> for each element and it appears on the brochure. <b>Share link</b> copies a link that opens this exact scheme. Your last setup is remembered when you reopen the file. <b>Reset</b> goes back to the start.</p>
   <p style="margin-top:14px;color:var(--muted);font-size:12px">Note: the 3D model is the project's SketchUp model (new_model_may13, COLLADA export) used as-is, with its original materials as the elements. Only colours and finishes change.</p>
   <p style="text-align:right;margin-top:10px"><button class="tool" id="gclose">Got it</button></p>
 </div></div>
@@ -452,11 +452,51 @@ function brochure(){
   if(location.hash.includes("&shot")){document.body.innerHTML="";document.body.style.display="block";const im=new Image();im.src=url;im.style.width="100%";document.body.append(im);return}
   const a=document.createElement("a");a.download=`Yogprabha_${pn.replace(/\W+/g,"_")}_render.png`;a.href=url;a.click();
 }
+// full scheme brochure: cover, facade views, detail views, elevations, element schedule
 async function brochurePdf(){
   if(!window.V3)return;
+  toast("Building the brochure… this takes a few seconds");
+  await new Promise(r=>setTimeout(r,50));
   if(!window.jspdf)await new Promise((res,rej)=>{const s=document.createElement("script");s.src=JSPDF_SRC;s.onload=res;s.onerror=rej;document.head.append(s)});
-  const {c,pn}=brochureCanvas(), pdf=new jspdf.jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
-  pdf.addImage(c.toDataURL("image/jpeg",.92),"JPEG",0,0,297,198);
+  const pdf=new jspdf.jsPDF({orientation:"landscape",unit:"mm",format:"a4"}), W=297, H=210, M=12;
+  const pn=state.preset>=0?PRESETS[state.preset].n:"Custom combination", pd=state.preset>=0?PRESETS[state.preset].d:"Custom colours and finishes";
+  const date=new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"});
+  const q=V3.low?.75:1, jpg=c=>c.toDataURL("image/jpeg",.86);
+  const ink=()=>pdf.setTextColor(29,29,27), mute=()=>pdf.setTextColor(107,104,98);
+  const head=(t,n)=>{pdf.setFillColor(246,243,238);pdf.rect(0,0,W,H,"F");ink();pdf.setFont("times","bold");pdf.setFontSize(18);pdf.text(t,M,M+6);
+    mute();pdf.setFont("helvetica","normal");pdf.setFontSize(9);pdf.text(`Yogprabha · ${pn}`,W-M,M+6,{align:"right"});pdf.text(String(n),W-M,H-6,{align:"right"});pdf.text("Exterior colour study · SketchUp model new_model_may13 · R5 elevations",M,H-6)};
+  const idx=n=>V3.views.indexOf(n);
+  const shot=(n,w,h)=>jpg(V3.stillAt(idx(n),Math.round(w*q),Math.round(h*q)));
+  // 1 cover
+  pdf.addImage(shot("Overview · south-east",2400,1360),"JPEG",0,0,W,168);
+  pdf.setFillColor(246,243,238);pdf.rect(0,168,W,H-168,"F");ink();pdf.setFont("times","bold");pdf.setFontSize(30);pdf.text("Yogprabha",M,186);
+  mute();pdf.setFont("helvetica","normal");pdf.setFontSize(14);pdf.text(pn+"  ·  "+pd,M,196);pdf.setFontSize(9);pdf.text("Exterior colour & finish scheme · "+date,M,203);
+  ROLES.slice(0,8).forEach(([k],i)=>{const f=fp(k),[r,g,b]=hex2rgb(f.c);pdf.setFillColor(r,g,b);pdf.rect(W-M-8*13+i*13,182,11,11,"F")});
+  // 2–3 views, four per page
+  const grid=(title,names,n)=>{pdf.addPage();head(title,n);const gw=(W-2*M-6)/2, gh=(H-2*M-28)/2;
+    names.forEach((v,i)=>{const x=M+(i%2)*(gw+6),y=M+12+Math.floor(i/2)*(gh+8);pdf.addImage(shot(v,1500,Math.round(1500*gh/gw)),"JPEG",x,y,gw,gh);mute();pdf.setFontSize(8.5);pdf.text(v,x,y+gh+4.5)})};
+  grid("Facades",["South facade","East facade","North facade","West facade"],2);
+  grid("Views & details",["Overview · north-west","Entrance & podium","Balcony detail","Crown & terrace"],3);
+  // 4 elevations from the R5 drawings, in the scheme's colours
+  pdf.addPage();head("Elevations (R5 drawings)",4);
+  const sides=Object.values(SIDES);sides.forEach(s=>{if(s.dirty)render(s)});
+  const ew=(W-2*M-3*6)/4;sides.forEach((s,i)=>{const h=Math.min(H-2*M-26,ew*s.h/s.w),w=h*s.w/s.h,x=M+i*(ew+6)+(ew-w)/2;
+    pdf.addImage(s.c.toDataURL("image/jpeg",.85),"JPEG",x,M+12,w,h);mute();pdf.setFontSize(8.5);pdf.text(s.name+" elevation",M+i*(ew+6),M+16+h)});
+  // 5 schedule
+  pdf.addPage();head("Colour & material schedule",5);
+  const cols=[["Element",M+16],["Finish",M+86],["Colour",M+128],["Pattern",M+153],["Gloss",M+173],["Reflect.",M+190],["Asian Paints shade",M+210]];
+  let y=M+20;pdf.setFont("helvetica","bold");pdf.setFontSize(8.5);ink();cols.forEach(([t,x])=>pdf.text(t,x,y));y+=3;pdf.setDrawColor(210,205,198);pdf.line(M,y,W-M,y);
+  const names=Object.fromEntries(TEXTURES);pdf.setFont("helvetica","normal");
+  ROLES.forEach(([k,l,d])=>{const f=fp(k),[r,g,b]=hex2rgb(f.c);y+=12;
+    const chip=paintTexChip(Object.assign(document.createElement("canvas"),{width:96,height:96}),f.t,f.c);pdf.addImage(chip.toDataURL("image/jpeg",.9),"JPEG",M,y-8,11,11);
+    ink();pdf.setFontSize(9.5);pdf.text(l,M+16,y-3);mute();pdf.setFontSize(7.5);pdf.text(d,M+16,y+1.5);ink();pdf.setFontSize(9);
+    pdf.text(names[f.t]||f.t,M+86,y-1);pdf.text(f.c.toUpperCase(),M+128,y-1);pdf.text(["paint","glass"].includes(f.t)?"–":f.s.toFixed(1)+"×",M+153,y-1);
+    pdf.text(Math.round(f.gl*100)+"%",M+173,y-1);pdf.text(Math.round(f.rf*100)+"%",M+190,y-1);pdf.text(f.ap||"—",M+210,y-1);
+    pdf.setDrawColor(230,226,220);pdf.line(M,y+4,W-M,y+4)});
+  const P=state.parts3d||{},np=Object.keys(P).length;
+  if(np){y+=12;mute();pdf.setFontSize(9);pdf.text(`Plus ${np} custom part paint${np>1?"s":""}:`,M,y);
+    const uniq=[...new Map(Object.values(P).map(v=>[JSON.stringify(v),v])).values()].slice(0,8);
+    uniq.forEach((v,i)=>{const c=v.c||"#ffffff",[r,g,b]=hex2rgb(c);pdf.setFillColor(r,g,b);pdf.rect(M+i*32,y+3,6,6,"F");ink();pdf.setFontSize(8);pdf.text(`${c.toUpperCase()} ${v.t?names[v.t]:""}`,M+8+i*32,y+7.5)})}
   pdf.save(`Yogprabha_${pn.replace(/\W+/g,"_")}_brochure.pdf`);
 }
 function shareLink(){
@@ -673,8 +713,8 @@ addEventListener("keydown", e => {
 
 // camera presets: [position, target]
 const VIEWS3 = [["Overview · south-east", [78, 38, 102], [0, 25, 0]], ["Overview · north-west", [-78, 38, -102], [0, 25, 0]],
-["South facade", [0, 28, 105], [0, 28, 0]], ["East facade", [105, 28, 0], [0, 28, 0]], ["North facade", [0, 28, -105], [0, 28, 0]], ["West facade", [-105, 28, 0], [0, 28, 0]],
-["Entrance & podium", [10, 3, 30], [0, 3, 6]], ["Balcony detail", [18, 32, 18], [6, 30, 6]], ["Crown & terrace", [24, 66, 30], [0, 52, 0]],
+["South facade", [0, 29, 74], [0, 29, 0]], ["East facade", [74, 29, 0], [0, 29, 0]], ["North facade", [0, 29, -74], [0, 29, 0]], ["West facade", [-74, 29, 0], [0, 29, 0]],
+["Entrance & podium", [18, 7, 36], [0, 6, 0]], ["Balcony detail", [18, 32, 18], [6, 30, 6]], ["Crown & terrace", [34, 72, 44], [0, 50, 0]],
 ["Top view", [0, 120, 8], [0, 20, 0]], ["Street level", [24, 1.7, 48], [0, 22, 0]]];
 function go(i, smooth = true) { const [, p, t] = VIEWS3[i]; controls.setLookAt(...p, ...t, smooth); need = true }
 
@@ -690,7 +730,15 @@ function still(W, H) {
   return c;
 }
 
-window.V3 = {
+// a still from one of the preset views, leaving the user's camera where it was
+function stillAt(i, W, H) {
+  const p = controls.getPosition(new THREE.Vector3()), t = controls.getTarget(new THREE.Vector3());
+  go(i, false); controls.update(0);
+  const c = still(W, H);
+  controls.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, false); controls.update(0); need = true;
+  return c;
+}
+window.V3 = { stillAt,
   ready: true, low,
   update: applyMaterials, roles() { sortByRole(); need = true }, mark, groupOfRegion: r => { for (let t = 0; t < NT; t++) if (tr[t] === r) return tg[t] - 1; return -1 },
   time: setTime, go, views: VIEWS3.map(v => v[0]),
